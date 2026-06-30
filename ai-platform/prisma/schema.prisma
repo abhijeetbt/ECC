@@ -1,0 +1,56 @@
+// Prisma schema for the AI Code Assistant MVP (unit test generation).
+// Run `npx prisma migrate dev --name init` after setting DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// The `id` is the Clerk user id (e.g. "user_2abc..."), so we don't need a
+// separate mapping table between Clerk and our database.
+model User {
+  id        String   @id
+  email     String   @unique
+  name      String?
+  // Billing tier — drives the monthly token allowance. Updated by the Stripe
+  // webhook when a subscription is created/updated/cancelled.
+  plan          String   @default("free") // "free" | "pro" | "team"
+  stripeCustomerId String? @unique
+  createdAt DateTime @default(now())
+
+  projects Project[]
+  usage    Usage[]
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  code        String   @default("")
+  // The most recent generated test output, cached so reopening a project shows
+  // the last result without re-spending tokens.
+  lastResult  String?
+  language    String   @default("python") // "python" | "javascript"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Usage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String?
+  tokens    Int
+  feature   String   // e.g. "generate_tests"
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
