@@ -623,6 +623,7 @@
         "scripts/claw.js",
         "skills/agent-architecture-audit",
         "skills/agent-harness-construction",
+        "skills/agentic-delivery-model",
         "skills/agentic-engineering",
         "skills/agentic-os",
         "skills/ai-first-engineering",
