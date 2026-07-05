@@ -8,6 +8,7 @@ const initSqlJs = require('sql.js');
 const toml = require('@iarna/toml');
 
 const { buildControlPaneActions } = require('./actions');
+const { buildTokenMonitorSnapshot } = require('./token-monitor');
 
 const SNAPSHOT_SCHEMA_VERSION = 'ecc.control-pane.snapshot.v1';
 const DEFAULT_STATE_STORE_RELATIVE_PATH = path.join('.claude', 'ecc', 'state.db');
@@ -612,6 +613,7 @@ async function buildControlPaneSnapshot(options = {}) {
     },
     summary: summarizeSessions([]),
     sessions: [],
+    tokenMonitor: buildTokenMonitorSnapshot([], { limit }),
     knowledge: {
       query,
       entityCount: 0,
@@ -645,6 +647,7 @@ async function buildControlPaneSnapshot(options = {}) {
       ...base,
       summary: summarizeSessions(sessions),
       sessions,
+      tokenMonitor: buildTokenMonitorSnapshot(sessions, { limit }),
       knowledge: {
         query,
         entityCount: entities.length,

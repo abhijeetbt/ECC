@@ -3,6 +3,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { estimateTokens } = require('./token-estimator');
+
 /**
  * Parse YAML frontmatter from a markdown string.
  * Returns { frontmatter: {}, body: string }.
@@ -195,8 +197,7 @@ function buildAgentCatalog(agentsDir, options = {}) {
   }
 
   const compressedJson = JSON.stringify(compressed);
-  // Rough token estimate: ~4 chars per token for English text
-  const compressedTokenEstimate = Math.ceil(compressedJson.length / 4);
+  const compressedTokenEstimate = estimateTokens(compressedJson);
 
   return {
     agents: compressed,

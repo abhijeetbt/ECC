@@ -109,6 +109,33 @@ Use subagents (Task tool) for exploration instead of reading many files in your 
 
 ---
 
+## Token Monitoring Dashboard
+
+The control-pane dashboard (`node scripts/control-pane.js`, see `scripts/lib/control-pane/`) now includes a **Token Monitor** panel built from the same session metrics ECC2 already tracks (`inputTokens`, `outputTokens`, `tokensUsed`, `costUsd`):
+
+- Running totals for tokens and cost across all sessions
+- The heaviest sessions ranked by tokens used, so you can spot which task blew the budget
+- A 14-day daily usage breakdown
+
+This is a read projection only — it does not add a new telemetry source. Start it locally with:
+
+```bash
+node scripts/control-pane.js --state-db ~/.claude/ecc/state.db
+```
+
+### Reuse patterns that actually cut billed tokens
+
+Two different things get called "caching" here — know which one you need:
+
+| Pattern | What it saves | Where |
+|---------|----------------|-------|
+| Prompt/context caching (`cache_control`) | Tokens Anthropic actually bills you for on repeat calls with the same system prompt/context | See `skills/cost-aware-llm-pipeline/SKILL.md` |
+| Memoized token estimation | Local CPU work re-scoring the same content (not a billing saving) | `scripts/lib/token-estimator.js`, used by `scripts/claw.js` and `scripts/lib/agent-compress.js` |
+
+Naive `chars / 4` token counting was previously duplicated in two files; it now lives in one shared, tested, memoized module so both callers stay consistent.
+
+---
+
 ## MCP Server Management
 
 Each enabled MCP server adds tool definitions to your context window. The README warns: **keep under 10 enabled per project**.

@@ -394,6 +394,10 @@ async function runTests() {
         assert.strictEqual(snapshot.connectors[0].name, 'hermes_workspace');
         assert.strictEqual(snapshot.connectors[0].syncedSources, 1);
         assert.strictEqual(snapshot.connectors[1].syncedSources, 0);
+        assert.strictEqual(snapshot.tokenMonitor.totals.totalTokens, 2500);
+        assert.strictEqual(snapshot.tokenMonitor.totals.costUsd, 0.49);
+        assert.strictEqual(snapshot.tokenMonitor.topSessions[0].id, 'lead-hermes');
+        assert.strictEqual(snapshot.tokenMonitor.topSessions[0].tokensUsed, 2000);
       } finally {
         fs.rmSync(tempDir, { recursive: true, force: true });
       }

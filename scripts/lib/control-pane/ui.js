@@ -379,6 +379,13 @@ function renderControlPaneHtml() {
           </div>
           <div id="work-items"></div>
         </section>
+        <section>
+          <div class="section-head">
+            <h2>Token Monitor</h2>
+            <span class="subtle" id="token-monitor-total"></span>
+          </div>
+          <div id="token-monitor"></div>
+        </section>
       </div>
       <div class="stack">
         <section>
@@ -464,12 +471,15 @@ function renderControlPaneHtml() {
       return '<span class="pill ' + klass + '">' + escapeHtml(state) + '</span>';
     }
 
+    const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
     function renderMetrics(summary) {
       const items = [
         ['Sessions', summary.totalSessions],
         ['Running', summary.runningSessions],
         ['Unread', summary.unreadMessages],
         ['Tokens', fmt.format(summary.totalTokens || 0)],
+        ['Cost', usd.format(summary.totalCostUsd || 0)],
       ];
       $('#metrics').innerHTML = items.map(([label, value]) =>
         '<div class="metric"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong></div>'
@@ -554,6 +564,44 @@ function renderControlPaneHtml() {
       });
     }
 
+    function renderTokenMonitor(tokenMonitor) {
+      const monitor = tokenMonitor || { totals: {}, topSessions: [], dailyUsage: [] };
+      const totals = monitor.totals || {};
+      $('#token-monitor-total').textContent = fmt.format(totals.totalTokens || 0) + ' tokens - ' + usd.format(totals.costUsd || 0);
+
+      const topSessions = Array.isArray(monitor.topSessions) ? monitor.topSessions : [];
+      const dailyUsage = Array.isArray(monitor.dailyUsage) ? monitor.dailyUsage : [];
+
+      if (!topSessions.length) {
+        $('#token-monitor').innerHTML = '<div class="empty">No token usage recorded yet.</div>';
+        return;
+      }
+
+      const sessionRows = topSessions.map(session =>
+        '<tr>' +
+          '<td><strong>' + escapeHtml(session.id) + '</strong><br><span class="subtle">' + escapeHtml(session.task || '') + '</span></td>' +
+          '<td>' + fmt.format(session.tokensUsed || 0) + '</td>' +
+          '<td>' + usd.format(session.costUsd || 0) + '</td>' +
+          '<td>' + fmt.format(session.toolCalls || 0) + '</td>' +
+        '</tr>'
+      ).join('');
+
+      const dailyRows = dailyUsage.map(day =>
+        '<tr>' +
+          '<td>' + escapeHtml(day.day) + '</td>' +
+          '<td>' + fmt.format(day.tokensUsed || 0) + '</td>' +
+          '<td>' + usd.format(day.costUsd || 0) + '</td>' +
+          '<td>' + fmt.format(day.sessionCount || 0) + '</td>' +
+        '</tr>'
+      ).join('');
+
+      $('#token-monitor').innerHTML =
+        '<table><thead><tr><th>Session</th><th>Tokens</th><th>Cost</th><th>Tool calls</th></tr></thead><tbody>' + sessionRows + '</tbody></table>' +
+        (dailyUsage.length
+          ? '<div class="section-head"><h2>Daily usage</h2></div><table><thead><tr><th>Day</th><th>Tokens</th><th>Cost</th><th>Sessions</th></tr></thead><tbody>' + dailyRows + '</tbody></table>'
+          : '');
+    }
+
     function renderKnowledge(knowledge) {
       $('#knowledge-count').textContent = knowledge.entityCount + ' entities';
       if (!knowledge.results.length) {
@@ -636,6 +684,7 @@ function renderControlPaneHtml() {
       renderMetrics(snapshot.summary);
       renderSessions(snapshot.sessions);
       renderWorkItems(snapshot.workItems);
+      renderTokenMonitor(snapshot.tokenMonitor);
       renderKnowledge(snapshot.knowledge);
       renderConnectors(snapshot.connectors);
       renderActions(snapshot.actions.map(action => ({

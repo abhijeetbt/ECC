@@ -12,6 +12,7 @@ const path = require('path');
 const os = require('os');
 const { spawnSync } = require('child_process');
 const readline = require('readline');
+const { estimateTokens } = require('./lib/token-estimator');
 
 const SESSION_NAME_RE = /^[a-zA-Z0-9][-a-zA-Z0-9]*$/;
 const DEFAULT_MODEL = process.env.CLAW_MODEL || 'sonnet';
@@ -137,15 +138,11 @@ function parseTurns(history) {
   return turns;
 }
 
-function estimateTokenCount(text) {
-  return Math.ceil((text || '').length / 4);
-}
-
 function getSessionMetrics(filePath) {
   const history = loadHistory(filePath);
   const turns = parseTurns(history);
   const charCount = history.length;
-  const tokenEstimate = estimateTokenCount(history);
+  const tokenEstimate = estimateTokens(history);
   const userTurns = turns.filter(t => t.role === 'User').length;
   const assistantTurns = turns.filter(t => t.role === 'Assistant').length;
 
@@ -474,7 +471,7 @@ module.exports = {
   handleSessions,
   handleHelp,
   parseTurns,
-  estimateTokenCount,
+  estimateTokenCount: estimateTokens,
   getSessionMetrics,
   searchSessions,
   compactSession,
