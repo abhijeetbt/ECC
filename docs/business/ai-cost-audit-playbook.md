@@ -5,6 +5,9 @@ to use) Claude/GPT-family models but are watching every dollar. Built on
 `scripts/audit-cost.js` and the `/cost-audit` command — the tool does the
 scanning, you do the judgment call and the pitch.
 
+See [`docs/business/ai-cost-audit-one-pager.md`](ai-cost-audit-one-pager.md)
+for the client-facing pitch this playbook backs — send that, run this.
+
 ## Who this is for
 
 Small teams already paying for AI API usage (or about to start) who don't
