@@ -134,6 +134,15 @@ Two different things get called "caching" here — know which one you need:
 
 Naive `chars / 4` token counting was previously duplicated in two files; it now lives in one shared, tested, memoized module so both callers stay consistent.
 
+### Running an AI cost audit
+
+`scripts/audit-cost.js` (or `/cost-audit` inside Claude Code) scans a
+project's Claude Code settings and source code for the cost anti-patterns
+this guide describes — missing model routing, no prompt caching, unbounded
+thinking-token budgets — and produces a report. See
+[`docs/business/ai-cost-audit-playbook.md`](business/ai-cost-audit-playbook.md)
+for how to run this as a paid client engagement.
+
 ---
 
 ## MCP Server Management

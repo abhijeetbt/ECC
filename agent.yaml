@@ -161,6 +161,7 @@ commands:
   - build-fix
   - checkpoint
   - code-review
+  - cost-audit
   - cost-report
   - cpp-build
   - cpp-review

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "totalCommands": 92,
+  "totalCommands": 93,
   "commands": [
     {
       "command": "aside",
@@ -46,6 +46,17 @@
       "allAgents": [],
       "skills": [],
       "path": "commands/code-review.md"
+    },
+    {
+      "command": "cost-audit",
+      "description": "Run a heuristic AI-cost audit against a project and summarize the findings for a client-ready handoff.",
+      "type": "review",
+      "primaryAgents": [],
+      "allAgents": [],
+      "skills": [
+        "cost-aware-llm-pipeline"
+      ],
+      "path": "commands/cost-audit.md"
     },
     {
       "command": "cost-report",
@@ -1011,7 +1022,7 @@
       "orchestration": 11,
       "planning": 2,
       "refactoring": 1,
-      "review": 13,
+      "review": 14,
       "testing": 53
     },
     "topAgents": [
