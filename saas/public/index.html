@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Cost Audit Dashboard</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #14181a;
+    --panel: #1b211f;
+    --ink: #e7e4d6;
+    --ink-soft: #9aa096;
+    --rule: #333a37;
+    --amber: #e0a544;
+    --teal: #5cae9a;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); }
+  .num { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 40px 24px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  .subtitle { color: var(--ink-soft); font-size: 13px; margin: 0 0 28px; }
+  section { background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 18px 20px; margin-bottom: 18px; }
+  section h2 { font-size: 14px; margin: 0 0 12px; }
+  input { width: 100%; max-width: 320px; padding: 9px 10px; background: #10130f; border: 1px solid var(--rule); color: var(--ink); border-radius: 6px; }
+  button { padding: 9px 14px; border-radius: 6px; border: 1px solid var(--rule); background: #222a26; color: var(--ink); cursor: pointer; }
+  button:hover { border-color: var(--teal); }
+  button.primary { background: var(--teal); color: #07110d; border-color: var(--teal); font-weight: 600; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  code { background: #10130f; border: 1px solid var(--rule); border-radius: 6px; padding: 10px; display: block; overflow-x: auto; white-space: pre; font-size: 12.5px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); font-size: 13px; }
+  th { color: var(--ink-soft); font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; }
+  .pill.warn { background: var(--amber); color: #2a1d0c; }
+  .pill.pass { background: var(--teal); color: #07110d; }
+  .empty { color: var(--ink-soft); font-size: 13px; }
+  #app-panels { display: none; }
+  .details { margin-top: 10px; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>AI Cost Audit Dashboard</h1>
+    <p class="subtitle">Findings from your audit-cost.js runs. Your source code never leaves your machine &mdash; only these results are sent here.</p>
+
+    <section id="auth-panel">
+      <h2>Sign in</h2>
+      <div class="row">
+        <input id="email" type="email" placeholder="you@company.com">
+        <button class="primary" id="send-link">Send magic link</button>
+      </div>
+      <p class="empty" id="auth-status"></p>
+    </section>
+
+    <div id="app-panels">
+      <section>
+        <h2>API key</h2>
+        <p class="subtitle" style="margin-bottom:10px;">Generate a key, then run the agent locally:</p>
+        <code id="cmd-example">node scripts/audit-cost.js . --push https://YOUR-DASHBOARD.vercel.app/api/ingest --key &lt;your-key&gt;</code>
+        <div class="row" style="margin-top:12px;">
+          <button class="primary" id="create-key">Generate new key</button>
+        </div>
+        <p class="empty" id="key-status"></p>
+      </section>
+
+      <section>
+        <h2>Audit runs</h2>
+        <div id="runs"></div>
+      </section>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    // Fill these in after creating the Supabase project (Project Settings > API).
+    const SUPABASE_URL = 'https://YOUR-PROJECT.supabase.co';
+    const SUPABASE_ANON_KEY = 'YOUR-ANON-KEY';
+
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const $ = (sel) => document.querySelector(sel);
+    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+
+    async function getSession() {
+      const { data } = await supabase.auth.getSession();
+      return data.session;
+    }
+
+    async function sendMagicLink() {
+      const email = $('#email').value.trim();
+      if (!email) return;
+      $('#auth-status').textContent = 'Sending link...';
+      const { error } = await supabase.auth.signInWithOtp({ email });
+      $('#auth-status').textContent = error ? error.message : 'Check your email for a sign-in link.';
+    }
+
+    async function createApiKey() {
+      const session = await getSession();
+      if (!session) return;
+      $('#key-status').textContent = 'Generating...';
+      const response = await fetch('/api/create-key', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          authorization: 'Bearer ' + session.access_token
+        },
+        body: JSON.stringify({ label: 'dashboard' })
+      });
+      const payload = await response.json();
+      $('#key-status').textContent = payload.ok
+        ? 'New key (copy now, shown once): ' + payload.apiKey
+        : 'Error: ' + payload.error;
+    }
+
+    function renderRuns(runs) {
+      if (!runs.length) {
+        $('#runs').innerHTML = '<p class="empty">No audit runs yet. Run the agent with --push to see results here.</p>';
+        return;
+      }
+      $('#runs').innerHTML = '<table><thead><tr><th>Date</th><th>Project</th><th>Findings</th><th>Passed</th></tr></thead><tbody>' +
+        runs.map((run) => {
+          const findingsList = (run.results || [])
+            .filter((entry) => entry.status === 'warn')
+            .map((entry) => '<li><strong>' + escapeHtml(entry.title) + '</strong>: ' + escapeHtml(entry.recommendation || entry.detail) + '</li>')
+            .join('');
+          return '<tr>' +
+            '<td>' + escapeHtml(new Date(run.generated_at).toLocaleString()) + '</td>' +
+            '<td>' + escapeHtml(run.project_root || '-') + '</td>' +
+            '<td><span class="pill warn">' + run.findings_count + '</span></td>' +
+            '<td><span class="pill pass">' + run.passed_count + '</span></td>' +
+          '</tr>' +
+          (findingsList ? '<tr><td colspan="4"><ul class="details">' + findingsList + '</ul></td></tr>' : '');
+        }).join('') +
+      '</tbody></table>';
+    }
+
+    async function loadRuns() {
+      const { data, error } = await supabase
+        .from('audit_runs')
+        .select('generated_at, project_root, findings_count, passed_count, results')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) {
+        $('#runs').innerHTML = '<p class="empty">Error loading runs: ' + escapeHtml(error.message) + '</p>';
+        return;
+      }
+      renderRuns(data || []);
+    }
+
+    async function onAuthed() {
+      $('#auth-panel').style.display = 'none';
+      document.getElementById('app-panels').style.display = 'block';
+      await loadRuns();
+    }
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) onAuthed();
+    });
+
+    $('#send-link').addEventListener('click', sendMagicLink);
+    $('#create-key').addEventListener('click', createApiKey);
+
+    getSession().then((session) => { if (session) onAuthed(); });
+  </script>
+</body>
+</html>

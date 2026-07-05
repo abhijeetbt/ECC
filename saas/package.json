@@ -1,0 +1,9 @@
+{
+  "name": "ai-cost-audit-saas",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Hosted dashboard + ingest API for AI Cost Audit findings. Deploy on Vercel with a Supabase backend.",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0"
+  }
+}
